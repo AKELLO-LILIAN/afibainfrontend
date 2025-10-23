@@ -14,8 +14,8 @@ class _SalaryScreenState extends State<SalaryScreen> with SingleTickerProviderSt
   // Mock company data
   final Map<String, dynamic> _companyData = {
     'name': 'Tech Innovations Corp',
-    'totalEmployees': 24,
-    'monthlyPayroll': 85600.0,
+    'totalEmployees': 5,
+    'monthlyPayroll': 22500.0,
     'nextPaydate': DateTime.now().add(const Duration(days: 8)),
     'currency': 'USDC',
   };
@@ -141,11 +141,25 @@ class _SalaryScreenState extends State<SalaryScreen> with SingleTickerProviderSt
           _buildHistoryTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _processPayroll,
-        backgroundColor: AppTheme.primaryGreen,
-        icon: const Icon(Icons.payments, color: Colors.white),
-        label: const Text('Process Payroll', style: TextStyle(color: Colors.white)),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'createPayroll',
+            onPressed: _createNewPayroll,
+            backgroundColor: Colors.blue,
+            child: const Icon(Icons.add, color: Colors.white),
+            tooltip: 'Create New Payroll',
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'processPayroll',
+            onPressed: _processPayroll,
+            backgroundColor: AppTheme.primaryGreen,
+            icon: const Icon(Icons.payments, color: Colors.white),
+            label: const Text('Process Payroll', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -965,15 +979,17 @@ class _SalaryScreenState extends State<SalaryScreen> with SingleTickerProviderSt
                 }
                 
                 // Add employee to list
-                _employees.add({
-                  'id': 'EMP${(_employees.length + 1).toString().padLeft(3, '0')}',
-                  'name': nameController.text,
-                  'role': roleController.text,
-                  'salary': double.parse(salaryController.text),
-                  'walletAddress': walletController.text,
-                  'status': 'active',
-                  'lastPaid': DateTime.now(),
-                  'department': selectedDepartment,
+                setState(() {
+                  _employees.add({
+                    'id': 'EMP${(_employees.length + 1).toString().padLeft(3, '0')}',
+                    'name': nameController.text,
+                    'role': roleController.text,
+                    'salary': double.parse(salaryController.text),
+                    'walletAddress': walletController.text,
+                    'status': 'active',
+                    'lastPaid': DateTime.now(),
+                    'department': selectedDepartment,
+                  });
                 });
                 
                 nameController.dispose();
@@ -982,17 +998,12 @@ class _SalaryScreenState extends State<SalaryScreen> with SingleTickerProviderSt
                 salaryController.dispose();
                 Navigator.pop(context);
                 
-                // Trigger rebuild
-                if (mounted) {
-                  setState(() {});
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Employee added successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${nameController.text} added successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryGreen,
@@ -1007,11 +1018,49 @@ class _SalaryScreenState extends State<SalaryScreen> with SingleTickerProviderSt
   }
   
   void _processPayroll() {
+    // Calculate current payroll
+    final totalPayroll = _employees.where((e) => e['status'] == 'active')
+        .fold(0.0, (sum, e) => sum + (e['salary'] as double));
+    final activeCount = _employees.where((e) => e['status'] == 'active').length;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Process Payroll'),
-        content: Text('Process monthly payroll of \$${_companyData['monthlyPayroll']} for ${_companyData['totalEmployees']} employees?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Process monthly payroll for $activeCount active employees?'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Active Employees:'),
+                      Text('$activeCount', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Amount:'),
+                      Text('\$${totalPayroll.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1019,14 +1068,195 @@ class _SalaryScreenState extends State<SalaryScreen> with SingleTickerProviderSt
           ),
           ElevatedButton(
             onPressed: () {
+              // Add to payment history
+              setState(() {
+                _paymentHistory.insert(0, {
+                  'date': DateTime.now(),
+                  'type': 'Monthly Salary',
+                  'totalAmount': totalPayroll,
+                  'employeeCount': activeCount,
+                  'status': 'completed',
+                  'transactionHash': '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}...',
+                });
+                
+                // Update last paid date for all active employees
+                for (var employee in _employees) {
+                  if (employee['status'] == 'active') {
+                    employee['lastPaid'] = DateTime.now();
+                  }
+                }
+              });
+              
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Payroll processing initiated...')),
+                SnackBar(
+                  content: Text('Payroll of \$${totalPayroll.toStringAsFixed(2)} processed successfully'),
+                  backgroundColor: Colors.green,
+                ),
               );
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Process'),
           ),
         ],
+      ),
+    );
+  }
+  
+  void _createNewPayroll() {
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String payrollType = 'Bonus Payment';
+    final List<Map<String, dynamic>> selectedEmployees = [];
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Create New Payroll'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: payrollType,
+                  decoration: const InputDecoration(
+                    labelText: 'Payroll Type',
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  items: ['Bonus Payment', 'Commission', 'Special Payment', 'Overtime', 'One-time Payment']
+                      .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                      .toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      payrollType = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  decoration: const InputDecoration(
+                    labelText: 'Total Amount',
+                    prefixIcon: Icon(Icons.attach_money),
+                    hintText: '5000',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (Optional)',
+                    prefixIcon: Icon(Icons.description),
+                    hintText: 'Q4 Performance bonus',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Select Employees:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _employees.length,
+                    itemBuilder: (context, index) {
+                      final employee = _employees[index];
+                      final isSelected = selectedEmployees.contains(employee);
+                      return CheckboxListTile(
+                        dense: true,
+                        title: Text(employee['name'], style: const TextStyle(fontSize: 14)),
+                        subtitle: Text(employee['role'], style: const TextStyle(fontSize: 12)),
+                        value: isSelected,
+                        onChanged: (bool? value) {
+                          setDialogState(() {
+                            if (value == true) {
+                              selectedEmployees.add(employee);
+                            } else {
+                              selectedEmployees.remove(employee);
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${selectedEmployees.length} employee(s) selected',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (amountController.text.isEmpty || selectedEmployees.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter amount and select employees'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                final amount = double.tryParse(amountController.text);
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid amount'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                // Add to payment history
+                setState(() {
+                  _paymentHistory.insert(0, {
+                    'date': DateTime.now(),
+                    'type': payrollType,
+                    'totalAmount': amount,
+                    'employeeCount': selectedEmployees.length,
+                    'status': 'completed',
+                    'transactionHash': '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}...',
+                  });
+                });
+                
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$payrollType of \$${amount.toStringAsFixed(2)} created successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Create'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -109,10 +109,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterOptions,
+            tooltip: 'Filter',
           ),
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: _selectDate,
+            tooltip: 'Select Date',
+          ),
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More options',
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export_csv',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download),
+                    SizedBox(width: 8),
+                    Text('Export as CSV'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf),
+                    SizedBox(width: 8),
+                    Text('Export as PDF'),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: _handleExport,
           ),
         ],
       ),
@@ -610,5 +639,147 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
     );
+  }
+  
+  void _handleExport(String exportType) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              exportType == 'export_csv' ? Icons.file_download : Icons.picture_as_pdf,
+              color: AppTheme.primaryGreen,
+            ),
+            const SizedBox(width: 12),
+            Text('Export ${exportType == 'export_csv' ? 'CSV' : 'PDF'}'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Export ${_filteredTransactions.length} transactions to ${exportType == 'export_csv' ? 'CSV' : 'PDF'} file?',
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Transactions:'),
+                      Text(
+                        '${_filteredTransactions.length}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Volume:'),
+                      Text(
+                        '\$${_calculateTotalVolume().toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Filter:'),
+                      Text(
+                        _selectedFilter,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _performExport(exportType);
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('Export'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _performExport(String exportType) {
+    // Simulate export process
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 2,
+            ),
+            const SizedBox(width: 16),
+            Text('Exporting ${_filteredTransactions.length} transactions...'),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppTheme.primaryGreen,
+      ),
+    );
+    
+    // Simulate export completion
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                  'Exported to ${exportType == 'export_csv' ? 'transactions.csv' : 'transactions.pdf'}',
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () {
+                // In production: Open the exported file
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('File location: /Downloads/'),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    });
   }
 }

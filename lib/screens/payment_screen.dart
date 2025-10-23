@@ -70,6 +70,11 @@ class _PaymentScreenState extends State<PaymentScreen>
             icon: const Icon(Icons.qr_code_scanner),
             tooltip: 'Scan QR Code',
           ),
+          IconButton(
+            onPressed: _showPaymentQRCode,
+            icon: const Icon(Icons.qr_code),
+            tooltip: 'Show My QR Code',
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -481,18 +486,178 @@ class _PaymentScreenState extends State<PaymentScreen>
     );
   }
   
-  void _scanQRCode() {
+  void _scanQRCode() async {
+    try {
+      // Import mobile_scanner package for actual scanning
+      // For now, show dialog with instructions
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.qr_code_scanner, color: AppTheme.primaryGreen),
+              const SizedBox(width: 12),
+              const Text('Scan QR Code'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.qr_code_2, size: 100, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              const Text(
+                'Point your camera at a QR code to scan merchant payment details.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // In production: Navigate to camera scanner screen
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Camera scanner will be implemented'),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Open Camera Scanner'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening scanner: $e')),
+      );
+    }
+  }
+  
+  void _showPaymentQRCode() {
+    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+    if (!walletProvider.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please connect your wallet first')),
+      );
+      return;
+    }
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('QR Code Scanner'),
-        content: const Text('QR code scanning will be implemented with camera access.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder: (context) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Receive Payment',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  children: [
+                    // QR Code placeholder - In production, use qr_flutter package
+                    Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.qr_code_2,
+                        size: 150,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Your Wallet Address',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      walletProvider.shortAddress,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      // Copy address to clipboard
+                      Clipboard.setData(
+                        ClipboardData(text: walletProvider.walletAddressString),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Address copied to clipboard'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy Address'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      // Share QR code functionality
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Share functionality coming soon'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.share),
+                    label: const Text('Share'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 45),
+                ),
+                child: const Text('Done'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

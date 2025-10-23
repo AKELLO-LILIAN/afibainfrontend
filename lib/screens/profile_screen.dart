@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/wallet_provider.dart';
 import '../utils/theme.dart';
@@ -17,6 +18,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _biometricEnabled = false;
   String _preferredCurrency = 'USDC';
   String _preferredLanguage = 'English';
+  
+  // User profile data
+  String _userName = 'AfriBain User';
+  String _userEmail = 'user@afribain.com';
+  String _userPhone = '+234 XXX XXX XXXX';
+  String _userBio = 'Blockchain enthusiast';
+  
+  // Contacts list
+  final List<Map<String, String>> _contacts = [
+    {
+      'name': 'Alice Johnson',
+      'walletAddress': '0x742d35Cc6634C0532925a3b8D5C9F9b4E6Bf31F4',
+      'phone': '+234 801 234 5678',
+      'email': 'alice@example.com',
+      'note': 'Business partner',
+    },
+    {
+      'name': 'Bob Smith',
+      'walletAddress': '0x8ba1f109551bD432803012645Hac136c772aBCd',
+      'phone': '+234 802 345 6789',
+      'email': 'bob@example.com',
+      'note': 'Friend',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       
                       // User Info
                       Text(
-                        'AfriBain User', // In production, get from user profile
+                        _userName,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -223,7 +248,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Personal Information',
                       'Update your profile details',
                       Icons.person_outline,
-                      () => _showComingSoon('Personal Information'),
+                      () => _showPersonalInfoDialog(),
+                    ),
+                    _buildSettingsItem(
+                      'My Contacts',
+                      '${_contacts.length} saved contacts',
+                      Icons.contacts,
+                      () => _showContactsScreen(),
                     ),
                     _buildSettingsItem(
                       'Security & Privacy',
@@ -276,19 +307,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Help & Support',
                       'Get help or contact support',
                       Icons.help_outline,
-                      () => _showComingSoon('Help & Support'),
+                      () => _showHelpSupport(),
                     ),
                     _buildSettingsItem(
                       'Terms of Service',
                       'Read our terms and conditions',
                       Icons.description,
-                      () => _showComingSoon('Terms of Service'),
+                      () => _showTermsOfService(),
                     ),
                     _buildSettingsItem(
                       'Privacy Policy',
                       'Learn about data usage',
                       Icons.privacy_tip,
-                      () => _showComingSoon('Privacy Policy'),
+                      () => _showPrivacyPolicy(),
                     ),
                     _buildSettingsItem(
                       'App Version',
@@ -424,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _editProfile() {
-    _showComingSoon('Edit Profile');
+    _showPersonalInfoDialog();
   }
 
   void _toggleNotifications() {
@@ -610,6 +641,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: const Text('Copy Address'),
                     onTap: () {
                       // Copy address to clipboard
+                      Clipboard.setData(
+                        ClipboardData(text: walletProvider.walletAddressString),
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Address copied to clipboard!')),
                       );
@@ -632,8 +666,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     leading: const Icon(Icons.link, color: Colors.green),
                     title: const Text('Connect Wallet'),
                     onTap: () {
-                      walletProvider.connectWallet();
                       Navigator.pop(context);
+                      Navigator.pushNamed(context, '/wallet_connect');
                     },
                   ),
                 ],
@@ -689,6 +723,938 @@ class _ProfileScreenState extends State<ProfileScreen> {
       SnackBar(
         content: Text('$feature feature coming soon!'),
         duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+  
+  void _showPersonalInfoDialog() {
+    final nameController = TextEditingController(text: _userName);
+    final emailController = TextEditingController(text: _userEmail);
+    final phoneController = TextEditingController(text: _userPhone);
+    final bioController = TextEditingController(text: _userBio);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Personal Information'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: bioController,
+                decoration: const InputDecoration(
+                  labelText: 'Bio',
+                  prefixIcon: Icon(Icons.info),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _userName = nameController.text;
+                _userEmail = emailController.text;
+                _userPhone = phoneController.text;
+                _userBio = bioController.text;
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Profile updated successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showHelpSupport() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.help, color: AppTheme.primaryGreen),
+            const SizedBox(width: 12),
+            const Text('Help & Support'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'How can we help you?',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(Icons.email, color: AppTheme.primaryGreen),
+                title: const Text('Email Support'),
+                subtitle: const Text('support@afribain.com'),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Opening email client...')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.phone, color: AppTheme.primaryGreen),
+                title: const Text('Phone Support'),
+                subtitle: const Text('+256 740819876'),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Dialing support...')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.chat, color: AppTheme.primaryGreen),
+                title: const Text('Live Chat'),
+                subtitle: const Text('Available 24/7'),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Starting live chat...')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.book, color: AppTheme.primaryGreen),
+                title: const Text('FAQs'),
+                subtitle: const Text('Browse common questions'),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Opening FAQ section...')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showPrivacyPolicy() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.privacy_tip, color: AppTheme.primaryGreen),
+            const SizedBox(width: 12),
+            const Text('Privacy Policy'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'AfriBain Privacy Policy',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Last updated: October 2024',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '1. Information We Collect',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'We collect information that you provide directly to us, including wallet addresses, transaction data, and profile information. We do not store your private keys or seed phrases.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '2. How We Use Your Information',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Your information is used to provide and improve our services, process transactions, maintain security, and comply with legal obligations.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '3. Data Security',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'We implement industry-standard security measures including encryption, secure storage, and regular security audits to protect your data.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '4. Your Rights',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You have the right to access, correct, or delete your personal information. You can also export your data at any time.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '5. Contact Us',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'For privacy concerns, contact us at privacy@afribain.com',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Privacy Policy accepted')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Accept'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showContactsScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('My Contacts'),
+            backgroundColor: AppTheme.primaryGreen,
+            foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.person_add),
+                onPressed: () => _showAddContactDialog(),
+                tooltip: 'Add Contact',
+              ),
+            ],
+          ),
+          body: _contacts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.contacts_outlined,
+                        size: 80,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No contacts yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add contacts to send payments quickly',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddContactDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Contact'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _contacts.length,
+                  itemBuilder: (context, index) {
+                    final contact = _contacts[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+                          child: Text(
+                            contact['name']!.substring(0, 2).toUpperCase(),
+                            style: TextStyle(
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          contact['name']!,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            if (contact['note']?.isNotEmpty ?? false)
+                              Text(
+                                contact['note']!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _shortenAddress(contact['walletAddress']!),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: PopupMenuButton(
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'send',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.send),
+                                  SizedBox(width: 8),
+                                  Text('Send Payment'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'view',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.visibility),
+                                  SizedBox(width: 8),
+                                  Text('View Details'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) => _handleContactAction(value.toString(), index, contact),
+                        ),
+                        onTap: () => _showContactDetails(contact),
+                      ),
+                    );
+                  },
+                ),
+          floatingActionButton: _contacts.isNotEmpty
+              ? FloatingActionButton(
+                  onPressed: () => _showAddContactDialog(),
+                  backgroundColor: AppTheme.primaryGreen,
+                  child: const Icon(Icons.add, color: Colors.white),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+  
+  String _shortenAddress(String address) {
+    if (address.length <= 13) return address;
+    return '${address.substring(0, 6)}...${address.substring(address.length - 4)}';
+  }
+  
+  void _handleContactAction(String action, int index, Map<String, String> contact) {
+    switch (action) {
+      case 'send':
+        Navigator.pop(context);
+        Navigator.pushNamed(context, '/payment');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sending payment to ${contact['name']}')),
+        );
+        break;
+      case 'view':
+        _showContactDetails(contact);
+        break;
+      case 'edit':
+        _showEditContactDialog(index, contact);
+        break;
+      case 'delete':
+        _deleteContact(index, contact);
+        break;
+    }
+  }
+  
+  void _showContactDetails(Map<String, String> contact) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+              child: Text(
+                contact['name']!.substring(0, 2).toUpperCase(),
+                style: TextStyle(
+                  color: AppTheme.primaryGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                contact['name']!,
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildContactDetailRow('Wallet Address', contact['walletAddress']!, Icons.account_balance_wallet),
+              if (contact['email']?.isNotEmpty ?? false)
+                _buildContactDetailRow('Email', contact['email']!, Icons.email),
+              if (contact['phone']?.isNotEmpty ?? false)
+                _buildContactDetailRow('Phone', contact['phone']!, Icons.phone),
+              if (contact['note']?.isNotEmpty ?? false)
+                _buildContactDetailRow('Note', contact['note']!, Icons.note),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/payment');
+            },
+            icon: const Icon(Icons.send),
+            label: const Text('Send Payment'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildContactDetailRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppTheme.primaryGreen),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 18),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: value));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$label copied to clipboard')),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showAddContactDialog() {
+    final nameController = TextEditingController();
+    final walletController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    final noteController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Contact'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name *',
+                  prefixIcon: Icon(Icons.person),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: walletController,
+                decoration: const InputDecoration(
+                  labelText: 'Wallet Address *',
+                  prefixIcon: Icon(Icons.account_balance_wallet),
+                  hintText: '0x...',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email (Optional)',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone (Optional)',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(
+                  labelText: 'Note (Optional)',
+                  prefixIcon: Icon(Icons.note),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isEmpty || walletController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Name and Wallet Address are required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              setState(() {
+                _contacts.add({
+                  'name': nameController.text,
+                  'walletAddress': walletController.text,
+                  'email': emailController.text,
+                  'phone': phoneController.text,
+                  'note': noteController.text,
+                });
+              });
+              
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${nameController.text} added to contacts'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showEditContactDialog(int index, Map<String, String> contact) {
+    final nameController = TextEditingController(text: contact['name']);
+    final walletController = TextEditingController(text: contact['walletAddress']);
+    final emailController = TextEditingController(text: contact['email']);
+    final phoneController = TextEditingController(text: contact['phone']);
+    final noteController = TextEditingController(text: contact['note']);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Contact'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name *',
+                  prefixIcon: Icon(Icons.person),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: walletController,
+                decoration: const InputDecoration(
+                  labelText: 'Wallet Address *',
+                  prefixIcon: Icon(Icons.account_balance_wallet),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email (Optional)',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone (Optional)',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(
+                  labelText: 'Note (Optional)',
+                  prefixIcon: Icon(Icons.note),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isEmpty || walletController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Name and Wallet Address are required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              setState(() {
+                _contacts[index] = {
+                  'name': nameController.text,
+                  'walletAddress': walletController.text,
+                  'email': emailController.text,
+                  'phone': phoneController.text,
+                  'note': noteController.text,
+                };
+              });
+              
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Contact updated'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _deleteContact(int index, Map<String, String> contact) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Contact'),
+        content: Text('Are you sure you want to delete ${contact['name']}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _contacts.removeAt(index);
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${contact['name']} deleted'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showTermsOfService() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.description, color: AppTheme.primaryGreen),
+            const SizedBox(width: 12),
+            const Text('Terms of Service'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'AfriBain Terms of Service',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Last updated: October 2024',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '1. Acceptance of Terms',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'By accessing and using AfriBain, you accept and agree to be bound by these Terms of Service and our Privacy Policy.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '2. Service Description',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'AfriBain provides a non-custodial stablecoin platform for payments, conversions, and payroll management using blockchain technology.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '3. User Responsibilities',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You are responsible for maintaining the security of your wallet, private keys, and account credentials. AfriBain cannot recover lost keys or access your funds.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '4. Transaction Fees',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Network fees and service charges apply to transactions. Fees are displayed before confirmation and vary based on network conditions.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '5. Prohibited Activities',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You may not use AfriBain for illegal activities, money laundering, fraud, or any activity that violates local or international laws.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '6. Limitation of Liability',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'AfriBain is provided "as is" without warranties. We are not liable for losses due to market volatility, technical issues, or user error.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '7. Contact',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'For questions about these terms, contact legal@afribain.com',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Terms accepted')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Accept'),
+          ),
+        ],
       ),
     );
   }

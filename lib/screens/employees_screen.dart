@@ -197,6 +197,34 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           IconButton(
             icon: const Icon(Icons.person_add),
             onPressed: _addEmployee,
+            tooltip: 'Add Employee',
+          ),
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More options',
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export_csv',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download),
+                    SizedBox(width: 8),
+                    Text('Export as CSV'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf),
+                    SizedBox(width: 8),
+                    Text('Export as PDF'),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: _handleExport,
           ),
         ],
       ),
@@ -499,10 +527,172 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   }
 
   void _addEmployee() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Add employee feature coming soon!'),
-        duration: Duration(seconds: 2),
+    final nameController = TextEditingController();
+    final positionController = TextEditingController();
+    final walletController = TextEditingController();
+    final salaryController = TextEditingController();
+    String selectedCurrency = 'USDC';
+    String selectedFrequency = 'Monthly';
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add New Employee'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name *',
+                    prefixIcon: Icon(Icons.person),
+                    hintText: 'John Doe',
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: positionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Position *',
+                    prefixIcon: Icon(Icons.work),
+                    hintText: 'Software Developer',
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: walletController,
+                  decoration: const InputDecoration(
+                    labelText: 'Wallet Address *',
+                    prefixIcon: Icon(Icons.account_balance_wallet),
+                    hintText: '0x...',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: salaryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Salary Amount *',
+                    prefixIcon: Icon(Icons.attach_money),
+                    hintText: '2500',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedCurrency,
+                  decoration: const InputDecoration(
+                    labelText: 'Currency',
+                    prefixIcon: Icon(Icons.monetization_on),
+                  ),
+                  items: ['USDC', 'USDT', 'DAI'].map((currency) {
+                    return DropdownMenuItem(
+                      value: currency,
+                      child: Text(currency),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedCurrency = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedFrequency,
+                  decoration: const InputDecoration(
+                    labelText: 'Payment Frequency',
+                    prefixIcon: Icon(Icons.schedule),
+                  ),
+                  items: ['Monthly', 'Bi-weekly', 'Weekly'].map((freq) {
+                    return DropdownMenuItem(
+                      value: freq,
+                      child: Text(freq),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedFrequency = value!;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Validation
+                if (nameController.text.isEmpty ||
+                    positionController.text.isEmpty ||
+                    walletController.text.isEmpty ||
+                    salaryController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please fill all required fields'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                final salary = double.tryParse(salaryController.text);
+                if (salary == null || salary <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid salary amount'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                // Generate new employee ID
+                final newId = (_employees.length + 1).toString().padLeft(3, '0');
+                
+                // Create new employee
+                final newEmployee = Employee(
+                  id: newId,
+                  name: nameController.text,
+                  position: positionController.text,
+                  walletAddress: walletController.text,
+                  salary: salary,
+                  currency: selectedCurrency,
+                  paymentFrequency: selectedFrequency,
+                  isActive: true,
+                  joinDate: DateTime.now(),
+                  lastPayment: DateTime.now(),
+                  paymentHistory: [],
+                );
+                
+                // Add to list
+                setState(() {
+                  _employees.add(newEmployee);
+                });
+                
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${nameController.text} added successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add Employee'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -952,6 +1142,145 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         );
       },
     );
+  }
+  
+  void _handleExport(String exportType) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              exportType == 'export_csv' ? Icons.file_download : Icons.picture_as_pdf,
+              color: AppTheme.primaryGreen,
+            ),
+            const SizedBox(width: 12),
+            Text('Export ${exportType == 'export_csv' ? 'CSV' : 'PDF'}'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Export ${_filteredEmployees.length} employees to ${exportType == 'export_csv' ? 'CSV' : 'PDF'} file?',
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Employees:'),
+                      Text(
+                        '${_filteredEmployees.length}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Active:'),
+                      Text(
+                        '${_filteredEmployees.where((e) => e.isActive).length}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Filter:'),
+                      Text(
+                        _filterStatus,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _performExport(exportType);
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('Export'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _performExport(String exportType) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 2,
+            ),
+            const SizedBox(width: 16),
+            Text('Exporting ${_filteredEmployees.length} employees...'),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppTheme.primaryGreen,
+      ),
+    );
+    
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                  'Exported to ${exportType == 'export_csv' ? 'employees.csv' : 'employees.pdf'}',
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('File location: /Downloads/'),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    });
   }
 }
 

@@ -149,7 +149,7 @@ class TokenProvider extends ChangeNotifier {
       Token(
         address: '0x799A5f2A46FB1Cd2717C60d53FBbB6282CCf9A09',
         symbol: 'USDC',
-        name: 'Mock USD Coin',
+        name: 'USD Coin',
         decimals: 6,
         type: TokenType.stable,
         category: TokenCategory.fiatBacked,
@@ -167,7 +167,7 @@ class TokenProvider extends ChangeNotifier {
       Token(
         address: '0x937D07e3A47916B5B44F1749304ce1779E2e5458',
         symbol: 'USDT',
-        name: 'Mock Tether USD',
+        name: 'Tether USD',
         decimals: 6,
         type: TokenType.stable,
         category: TokenCategory.fiatBacked,
